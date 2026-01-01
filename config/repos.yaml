@@ -1,0 +1,49 @@
+# Code Repositories Configuration
+# Add your repositories here with their descriptions and tags
+
+repositories:
+  - name: oracle-sdk-client
+    path: /Users/zhuoli/Projects/github/zhuoli/oracle-sdk-client
+    description: Oracle Cloud SDK client with MCP server for OCI operations including compute instances, OKE clusters, and bastion management
+    tags:
+      - oracle
+      - oci
+      - kubernetes
+      - infrastructure
+      - mcp
+
+  - name: confluence_assistant
+    path: /Users/zhuoli/Projects/github/zhuoli/confluence_assistant
+    description: Confluence and JIRA assistant with Electron app for documentation and issue management
+    tags:
+      - atlassian
+      - confluence
+      - jira
+      - documentation
+      - electron
+
+  - name: JustTrade
+    path: /Users/zhuoli/Projects/github/zhuoli/JustTrade
+    description: Trading platform application
+    tags:
+      - trading
+      - finance
+      - application
+
+  - name: oke-workload
+    path: /Users/zhuoli/Projects/github/zhuoli/oke-workload
+    description: Oracle Kubernetes Engine workload configurations and deployment manifests
+    tags:
+      - kubernetes
+      - oracle
+      - deployment
+      - infrastructure
+
+  - name: mcp-servers
+    path: /Users/zhuoli/Projects/github/zhuoli/mcp-servers
+    description: Collection of MCP servers for Oracle Cloud, Atlassian, and Code Repos management
+    tags:
+      - mcp
+      - oracle
+      - atlassian
+      - tools
