@@ -2,11 +2,15 @@
 
 import asyncio
 import logging
+import os
+import sys
 from typing import Any
 
+import requests
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+from rich.console import Console
 
 from .tools import (
     add_jira_comment_tool,
@@ -24,6 +28,7 @@ from .tools import (
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+console = Console(stderr=True)
 
 server = Server("atlassian-mcp")
 
@@ -360,6 +365,162 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         return [TextContent(type="text", text=error_message)]
 
 
+def validate_atlassian_config() -> bool:
+    """
+    Validate Atlassian configuration at startup.
+
+    Returns:
+        True if configuration is valid, False otherwise
+    """
+    console.print("[blue]Atlassian MCP Server - Startup Validation[/blue]")
+    console.print("-" * 50)
+
+    all_valid = True
+    jira_valid = False
+    confluence_valid = False
+
+    # Check JIRA configuration
+    console.print("[bold]JIRA Configuration:[/bold]")
+    jira_url = os.environ.get("JIRA_URL")
+    jira_username = os.environ.get("JIRA_USERNAME")
+    jira_token = os.environ.get("JIRA_API_TOKEN")
+
+    if not jira_url:
+        console.print("[red]  ERROR: JIRA_URL environment variable not set[/red]")
+        all_valid = False
+    elif not jira_username:
+        console.print("[red]  ERROR: JIRA_USERNAME environment variable not set[/red]")
+        all_valid = False
+    elif not jira_token:
+        console.print("[red]  ERROR: JIRA_API_TOKEN environment variable not set[/red]")
+        all_valid = False
+    else:
+        console.print(f"[green]  ✓[/green] JIRA URL: {jira_url}")
+        console.print(f"[green]  ✓[/green] JIRA Username: {jira_username}")
+        console.print("[green]  ✓[/green] JIRA API Token: [dim]****[/dim]")
+
+        # Test JIRA connection
+        console.print("[dim]  Testing JIRA connection...[/dim]")
+        try:
+            response = requests.get(
+                f"{jira_url.rstrip('/')}/rest/api/3/myself",
+                auth=(jira_username, jira_token),
+                headers={"Accept": "application/json"},
+                timeout=10
+            )
+            if response.status_code == 200:
+                user_data = response.json()
+                display_name = user_data.get("displayName", "Unknown")
+                console.print(f"[green]  ✓[/green] JIRA connection successful (logged in as: {display_name})")
+                jira_valid = True
+            elif response.status_code == 401:
+                console.print("[red]  ERROR: JIRA authentication failed - invalid credentials[/red]")
+                all_valid = False
+            elif response.status_code == 403:
+                console.print("[red]  ERROR: JIRA access forbidden - check API token permissions[/red]")
+                all_valid = False
+            else:
+                console.print(f"[red]  ERROR: JIRA connection failed (HTTP {response.status_code})[/red]")
+                all_valid = False
+        except requests.exceptions.ConnectionError:
+            console.print(f"[red]  ERROR: Cannot connect to JIRA at {jira_url}[/red]")
+            console.print("[yellow]    Check if the URL is correct and accessible[/yellow]")
+            all_valid = False
+        except requests.exceptions.Timeout:
+            console.print("[red]  ERROR: JIRA connection timed out[/red]")
+            all_valid = False
+        except Exception as e:
+            console.print(f"[red]  ERROR: JIRA connection test failed: {e}[/red]")
+            all_valid = False
+
+    console.print("")
+
+    # Check Confluence configuration
+    console.print("[bold]Confluence Configuration:[/bold]")
+    confluence_url = os.environ.get("CONFLUENCE_URL")
+    confluence_username = os.environ.get("CONFLUENCE_USERNAME")
+    confluence_token = os.environ.get("CONFLUENCE_API_TOKEN")
+    confluence_space = os.environ.get("CONFLUENCE_SPACE_KEY")
+
+    if not confluence_url:
+        console.print("[red]  ERROR: CONFLUENCE_URL environment variable not set[/red]")
+        all_valid = False
+    elif not confluence_username:
+        console.print("[red]  ERROR: CONFLUENCE_USERNAME environment variable not set[/red]")
+        all_valid = False
+    elif not confluence_token:
+        console.print("[red]  ERROR: CONFLUENCE_API_TOKEN environment variable not set[/red]")
+        all_valid = False
+    else:
+        console.print(f"[green]  ✓[/green] Confluence URL: {confluence_url}")
+        console.print(f"[green]  ✓[/green] Confluence Username: {confluence_username}")
+        console.print("[green]  ✓[/green] Confluence API Token: [dim]****[/dim]")
+        if confluence_space:
+            console.print(f"[green]  ✓[/green] Default Space: {confluence_space}")
+        else:
+            console.print("[yellow]  ⚠ CONFLUENCE_SPACE_KEY not set (will need to specify in each request)[/yellow]")
+
+        # Test Confluence connection
+        console.print("[dim]  Testing Confluence connection...[/dim]")
+        try:
+            response = requests.get(
+                f"{confluence_url.rstrip('/')}/rest/api/user/current",
+                auth=(confluence_username, confluence_token),
+                headers={"Accept": "application/json"},
+                timeout=10
+            )
+            if response.status_code == 200:
+                user_data = response.json()
+                display_name = user_data.get("displayName", user_data.get("username", "Unknown"))
+                console.print(f"[green]  ✓[/green] Confluence connection successful (logged in as: {display_name})")
+                confluence_valid = True
+            elif response.status_code == 401:
+                console.print("[red]  ERROR: Confluence authentication failed - invalid credentials[/red]")
+                all_valid = False
+            elif response.status_code == 403:
+                console.print("[red]  ERROR: Confluence access forbidden - check API token permissions[/red]")
+                all_valid = False
+            else:
+                console.print(f"[red]  ERROR: Confluence connection failed (HTTP {response.status_code})[/red]")
+                all_valid = False
+        except requests.exceptions.ConnectionError:
+            console.print(f"[red]  ERROR: Cannot connect to Confluence at {confluence_url}[/red]")
+            console.print("[yellow]    Check if the URL is correct and accessible[/yellow]")
+            all_valid = False
+        except requests.exceptions.Timeout:
+            console.print("[red]  ERROR: Confluence connection timed out[/red]")
+            all_valid = False
+        except Exception as e:
+            console.print(f"[red]  ERROR: Confluence connection test failed: {e}[/red]")
+            all_valid = False
+
+    console.print("")
+    console.print("-" * 50)
+
+    if not all_valid:
+        console.print("[red]Configuration validation failed.[/red]")
+        console.print("")
+        console.print("[yellow]To fix these issues:[/yellow]")
+        console.print("  1. Set the required environment variables in .env file")
+        console.print("  2. Get API tokens from: https://id.atlassian.com/manage-profile/security/api-tokens")
+        console.print("")
+        console.print("[dim]Required environment variables:[/dim]")
+        console.print("  JIRA_URL, JIRA_USERNAME, JIRA_API_TOKEN")
+        console.print("  CONFLUENCE_URL, CONFLUENCE_USERNAME, CONFLUENCE_API_TOKEN")
+        console.print("  CONFLUENCE_SPACE_KEY (optional)")
+        return False
+
+    if jira_valid and confluence_valid:
+        console.print("[green]All validations passed. Server ready.[/green]")
+    elif jira_valid:
+        console.print("[yellow]JIRA ready. Confluence connection failed but server will start.[/yellow]")
+    elif confluence_valid:
+        console.print("[yellow]Confluence ready. JIRA connection failed but server will start.[/yellow]")
+
+    console.print("")
+    return True
+
+
 async def run_server():
     """Run the MCP server."""
     logger.info("Starting Atlassian MCP Server...")
@@ -375,6 +536,11 @@ async def run_server():
 
 def main():
     """Entry point for the Atlassian MCP server."""
+    # Validate configuration before starting
+    if not validate_atlassian_config():
+        console.print("[red]Server startup aborted due to configuration errors.[/red]")
+        sys.exit(1)
+
     asyncio.run(run_server())
 
 

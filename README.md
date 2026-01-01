@@ -205,6 +205,60 @@ Tools for repository discovery:
 | `get_repo_structure` | Get directory structure |
 | `reload_config` | Reload repos.yaml configuration |
 
+## Examples
+
+The `src/examples/` folder contains example implementations demonstrating how to connect to and use the MCP servers.
+
+### MVP Chatbot Agent
+
+An interactive chatbot that connects to MCP servers and uses Claude for tool calling:
+
+```bash
+# Set your Anthropic API key
+export ANTHROPIC_API_KEY=your-api-key
+
+# Run with code-repos server only (no extra config needed)
+make chatbot
+
+# Run with specific servers
+make chatbot-repos
+make chatbot-atlassian
+
+# Run with all servers (requires .env configured)
+make chatbot-all
+```
+
+**Features:**
+- Connects to multiple MCP servers as subprocesses
+- Communicates via JSON-RPC over stdio
+- Integrates with Claude API for tool calling
+- Rich terminal UI with markdown rendering
+
+**Commands in chatbot:**
+- Type messages to interact with Claude
+- `tools` - List available tools
+- `clear` - Clear conversation history
+- `quit` or Ctrl+C - Exit
+
+### MCP Client Library
+
+Use `mcp_client.py` in your own projects:
+
+```python
+from examples.mcp_client import MCPClient, MCPServerConfig
+
+config = MCPServerConfig(
+    name="repos",
+    command=["uv", "run", "python", "-m", "mcp_servers.code_repos.server"],
+)
+
+async with MCPClient(config) as client:
+    tools = await client.list_tools()
+    result = await client.call_tool("list_repos", {})
+```
+
+See `src/examples/README.md` for more details.
+
 ## Skills
 
 Each MCP server includes a Claude Code skill with detailed usage instructions:
@@ -212,6 +266,15 @@ Each MCP server includes a Claude Code skill with detailed usage instructions:
 - `.claude/skills/oracle-cloud-mcp/SKILL.md` - OCI authentication and operations
 - `.claude/skills/atlassian-mcp/SKILL.md` - JQL/CQL patterns and templates
 - `.claude/skills/code-repos-mcp/SKILL.md` - Repository discovery patterns
+
+## Startup Validation
+
+The Oracle Cloud and Atlassian MCP servers perform connection tests at startup:
+
+- **Oracle Cloud**: Validates OCI config, profile, session token, and tests API connectivity
+- **Atlassian**: Validates environment variables and tests JIRA/Confluence API connectivity
+
+If validation fails, servers exit with instructive error messages explaining how to fix the configuration.
 
 ## Development
 
@@ -244,11 +307,16 @@ mcp-servers/
 ├── .env.example                # Environment template
 ├── config/
 │   └── repos.yaml              # Code repos configuration
-├── src/mcp_servers/
-│   ├── common/                 # Shared utilities
-│   ├── oracle_cloud/           # Oracle Cloud MCP
-│   ├── atlassian/              # Atlassian MCP
-│   └── code_repos/             # Code Repos MCP
+├── src/
+│   ├── mcp_servers/
+│   │   ├── common/             # Shared utilities
+│   │   ├── oracle_cloud/       # Oracle Cloud MCP
+│   │   ├── atlassian/          # Atlassian MCP
+│   │   └── code_repos/         # Code Repos MCP
+│   └── examples/
+│       ├── mcp_client.py       # MCP client library
+│       ├── chatbot.py          # MVP chatbot agent
+│       └── README.md           # Examples documentation
 └── .claude/skills/             # Claude Code skills
 ```
 

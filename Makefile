@@ -3,6 +3,7 @@
 
 .PHONY: help install install-dev sync clean \
         run-oracle run-atlassian run-repos \
+        chatbot chatbot-repos chatbot-all \
         lint format typecheck test check \
         build
 
@@ -20,6 +21,11 @@ help:
 	@echo "  make run-oracle     Run Oracle Cloud MCP server"
 	@echo "  make run-atlassian  Run Atlassian MCP server"
 	@echo "  make run-repos      Run Code Repos MCP server"
+	@echo ""
+	@echo "Examples:"
+	@echo "  make chatbot        Run chatbot with repos server (default)"
+	@echo "  make chatbot-repos  Run chatbot with repos server"
+	@echo "  make chatbot-all    Run chatbot with all servers"
 	@echo ""
 	@echo "Development:"
 	@echo "  make lint       Run linter (ruff)"
@@ -125,4 +131,44 @@ run-repos-env:
 	else \
 		echo "Error: .env file not found. Copy .env.example to .env first."; \
 		exit 1; \
+	fi
+
+# =============================================================================
+# Examples
+# =============================================================================
+
+# Run chatbot with repos server (default, no extra config needed)
+chatbot: chatbot-repos
+
+chatbot-repos:
+	@if [ -z "$$ANTHROPIC_API_KEY" ]; then \
+		echo "Error: ANTHROPIC_API_KEY environment variable not set"; \
+		echo "Get your API key from: https://console.anthropic.com/"; \
+		exit 1; \
+	fi
+	cd src && uv run python -m examples.chatbot --servers repos
+
+# Run chatbot with all servers (requires all env vars configured)
+chatbot-all:
+	@if [ -z "$$ANTHROPIC_API_KEY" ]; then \
+		echo "Error: ANTHROPIC_API_KEY environment variable not set"; \
+		exit 1; \
+	fi
+	@if [ -f .env ]; then \
+		set -a && source .env && set +a && cd src && uv run python -m examples.chatbot --servers repos,oracle,atlassian; \
+	else \
+		echo "Error: .env file not found. Copy .env.example to .env first."; \
+		exit 1; \
+	fi
+
+# Run chatbot with specific servers
+chatbot-atlassian:
+	@if [ -z "$$ANTHROPIC_API_KEY" ]; then \
+		echo "Error: ANTHROPIC_API_KEY environment variable not set"; \
+		exit 1; \
+	fi
+	@if [ -f .env ]; then \
+		set -a && source .env && set +a && cd src && uv run python -m examples.chatbot --servers repos,atlassian; \
+	else \
+		cd src && uv run python -m examples.chatbot --servers repos,atlassian; \
 	fi

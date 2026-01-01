@@ -2,11 +2,15 @@
 
 import asyncio
 import logging
+import os
+import sys
+from pathlib import Path
 from typing import Any
 
 from mcp.server import Server
 from mcp.server.stdio import stdio_server
 from mcp.types import TextContent, Tool
+from rich.console import Console
 
 from .tools import (
     create_session_token_tool,
@@ -19,6 +23,7 @@ from .tools import (
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+console = Console(stderr=True)
 
 server = Server("oracle-cloud-mcp")
 
@@ -232,6 +237,111 @@ async def call_tool(name: str, arguments: Any) -> list[TextContent]:
         return [TextContent(type="text", text=error_message)]
 
 
+def validate_oci_config() -> bool:
+    """
+    Validate OCI configuration at startup.
+
+    Returns:
+        True if configuration is valid, False otherwise
+    """
+    console.print("[blue]Oracle Cloud MCP Server - Startup Validation[/blue]")
+    console.print("-" * 50)
+
+    # Check for OCI config file
+    config_file = os.environ.get("OCI_CONFIG_FILE")
+    if config_file:
+        config_path = Path(config_file)
+    else:
+        config_path = Path.home() / ".oci" / "config"
+
+    if not config_path.exists():
+        console.print(f"[red]ERROR: OCI config file not found: {config_path}[/red]")
+        console.print("")
+        console.print("[yellow]To fix this issue:[/yellow]")
+        console.print("  1. Install OCI CLI: pip install oci-cli")
+        console.print("  2. Run: oci setup config")
+        console.print("  3. Or set OCI_CONFIG_FILE environment variable to your config path")
+        console.print("")
+        console.print("[dim]For session token authentication:[/dim]")
+        console.print("  oci session authenticate --profile-name DEFAULT --region <region>")
+        return False
+
+    console.print(f"[green]✓[/green] OCI config file found: {config_path}")
+
+    # Check profile
+    profile_name = os.environ.get("OCI_PROFILE", "DEFAULT")
+
+    try:
+        import oci
+        oci_config = oci.config.from_file(
+            file_location=str(config_path),
+            profile_name=profile_name
+        )
+        console.print(f"[green]✓[/green] Profile '{profile_name}' loaded successfully")
+
+        # Check if using session token
+        if oci_config.get("security_token_file"):
+            token_path = Path(oci_config["security_token_file"])
+            if not token_path.exists():
+                console.print(f"[red]ERROR: Session token file not found: {token_path}[/red]")
+                console.print("")
+                console.print("[yellow]To fix this issue:[/yellow]")
+                console.print(f"  oci session authenticate --profile-name {profile_name} --region <region>")
+                return False
+
+            # Check token age
+            import time
+            token_age_minutes = (time.time() - token_path.stat().st_mtime) / 60
+            if token_age_minutes > 60:
+                console.print(f"[yellow]⚠ Session token may be expired (age: {token_age_minutes:.0f} minutes)[/yellow]")
+                console.print("[dim]  Use 'create_session_token' tool to refresh[/dim]")
+            else:
+                remaining = 60 - token_age_minutes
+                console.print(f"[green]✓[/green] Session token valid (~{remaining:.0f} minutes remaining)")
+
+        # Test connection
+        console.print("[dim]Testing OCI connection...[/dim]")
+        try:
+            from .auth import OCIAuthenticator
+            from .models import OCIConfig
+
+            region = os.environ.get("OCI_REGION", oci_config.get("region", "us-phoenix-1"))
+            config = OCIConfig(
+                region=region,
+                profile_name=profile_name,
+                config_file=str(config_path)
+            )
+            authenticator = OCIAuthenticator(config)
+            oci_config_dict, signer = authenticator.authenticate()
+
+            # Quick API test
+            identity_client = oci.identity.IdentityClient(oci_config_dict, signer=signer)
+            regions = identity_client.list_regions()
+            console.print(f"[green]✓[/green] Connection successful (found {len(regions.data)} regions)")
+
+        except Exception as e:
+            console.print(f"[red]ERROR: Connection test failed: {e}[/red]")
+            console.print("")
+            console.print("[yellow]Possible causes:[/yellow]")
+            console.print("  - Session token expired (refresh with 'oci session authenticate')")
+            console.print("  - Invalid API key configuration")
+            console.print("  - Network connectivity issues")
+            return False
+
+    except Exception as e:
+        console.print(f"[red]ERROR: Failed to load OCI config: {e}[/red]")
+        console.print("")
+        console.print("[yellow]To fix this issue:[/yellow]")
+        console.print(f"  1. Ensure profile '{profile_name}' exists in {config_path}")
+        console.print("  2. Or set OCI_PROFILE environment variable")
+        return False
+
+    console.print("-" * 50)
+    console.print("[green]All validations passed. Server ready.[/green]")
+    console.print("")
+    return True
+
+
 async def run_server():
     """Run the MCP server."""
     logger.info("Starting Oracle Cloud MCP Server...")
@@ -247,6 +357,11 @@ async def run_server():
 
 def main():
     """Entry point for the Oracle Cloud MCP server."""
+    # Validate configuration before starting
+    if not validate_oci_config():
+        console.print("[red]Server startup aborted due to configuration errors.[/red]")
+        sys.exit(1)
+
     asyncio.run(run_server())
 
 
