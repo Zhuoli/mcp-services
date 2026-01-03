@@ -463,9 +463,9 @@ class TestErrorHandling:
 
         result = await tools.get_my_jira_issues_tool({})
 
-        data = json.loads(result)
-        assert "error" in data
-        assert "JIRA API Error" in data["error"]
+        # format_error returns a plain string, not JSON
+        assert "Error" in result
+        assert "JIRA API Error" in result
 
     @pytest.mark.asyncio
     @patch("mcp_servers.atlassian.tools.ConfluenceClient")
@@ -483,6 +483,6 @@ class TestErrorHandling:
             "query": "test",
         })
 
-        data = json.loads(result)
-        assert "error" in data
-        assert "Confluence API Error" in data["error"]
+        # format_error returns a plain string, not JSON
+        assert "Error" in result
+        assert "Confluence API Error" in result

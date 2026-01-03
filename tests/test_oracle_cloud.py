@@ -1018,6 +1018,6 @@ class TestErrorHandling:
             "compartment_id": "ocid1.compartment.oc1..test",
         })
 
-        data = json.loads(result)
-        assert "error" in data
-        assert "API Error" in data["error"]
+        # format_error returns a plain string, not JSON
+        assert "Error" in result
+        assert "API Error" in result

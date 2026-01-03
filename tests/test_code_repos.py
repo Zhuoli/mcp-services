@@ -14,10 +14,22 @@ from mcp_servers.code_repos.models import RepoInfo, ReposConfig
 class TestReposConfig:
     """Tests for ReposConfig class."""
 
-    def test_empty_config(self):
-        """Test ReposConfig with no config file."""
+    def test_missing_config_raises_error(self):
+        """Test ReposConfig raises error when config file doesn't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
             config_path = os.path.join(tmpdir, "repos.yaml")
+            with pytest.raises(FileNotFoundError):
+                ReposConfig(config_path)
+
+    def test_empty_repos_list(self):
+        """Test ReposConfig with empty repositories list."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            config_path = os.path.join(tmpdir, "repos.yaml")
+
+            # Create empty config
+            with open(config_path, "w") as f:
+                f.write("repositories: []\n")
+
             config = ReposConfig(config_path)
 
             assert config.repos == []
@@ -117,9 +129,11 @@ repositories:
 repositories:
   - name: repo1
     path: /path/to/repo1
+    description: Repo 1
     tags: [python, api]
   - name: repo2
     path: /path/to/repo2
+    description: Repo 2
     tags: [python, frontend]
 """)
 
@@ -242,7 +256,7 @@ class TestGetRepoInfoTool:
         mock_config = MagicMock()
         mock_config.get_repo.return_value = None
         mock_config.repos = [
-            RepoInfo(name="other-repo", path="/path/to/other")
+            RepoInfo(name="other-repo", path="/path/to/other", description="Other repo")
         ]
         mock_get_config.return_value = mock_config
 
@@ -265,6 +279,7 @@ class TestGetRepoInfoTool:
             mock_config.get_repo.return_value = RepoInfo(
                 name="js-repo",
                 path=tmpdir,
+                description="JavaScript repository",
             )
             mock_get_config.return_value = mock_config
 
@@ -307,6 +322,7 @@ class TestSearchReposTool:
             RepoInfo(
                 name="python-api",
                 path="/path/to/api",
+                description="Python API",
                 tags=["python", "api"],
             )
         ]
@@ -346,6 +362,7 @@ class TestGetRepoStructureTool:
             mock_config.get_repo.return_value = RepoInfo(
                 name="test-repo",
                 path=tmpdir,
+                description="Test repository",
             )
             mock_get_config.return_value = mock_config
 
@@ -388,6 +405,7 @@ class TestGetRepoStructureTool:
         mock_config.get_repo.return_value = RepoInfo(
             name="test-repo",
             path="/nonexistent/path",
+            description="Test repository",
         )
         mock_get_config.return_value = mock_config
 
@@ -411,6 +429,7 @@ class TestGetRepoStructureTool:
             mock_config.get_repo.return_value = RepoInfo(
                 name="test-repo",
                 path=tmpdir,
+                description="Test repository",
             )
             mock_get_config.return_value = mock_config
 
@@ -439,7 +458,9 @@ class TestReloadConfigTool:
     async def test_reload_config(self, mock_get_config):
         """Test reload_config_tool."""
         mock_config = MagicMock()
-        mock_config.repos = [RepoInfo(name="test", path="/test")]
+        mock_config.repos = [
+            RepoInfo(name="test", path="/test", description="Test repo")
+        ]
         mock_config.config_path = "/path/to/repos.yaml"
         mock_get_config.return_value = mock_config
 
@@ -464,9 +485,9 @@ class TestErrorHandling:
 
         result = await tools.list_repos_tool({})
 
-        data = json.loads(result)
-        assert "error" in data
-        assert "Config error" in data["error"]
+        # format_error returns a plain string, not JSON
+        assert "Error" in result
+        assert "Config error" in result
 
     @pytest.mark.asyncio
     @patch("mcp_servers.code_repos.tools._get_config")
@@ -476,5 +497,6 @@ class TestErrorHandling:
 
         result = await tools.get_repo_info_tool({"name": "test"})
 
-        data = json.loads(result)
-        assert "error" in data
+        # format_error returns a plain string, not JSON
+        assert "Error" in result
+        assert "Config error" in result
