@@ -57,3 +57,10 @@ jobs:
       - name: Verify package
         run: |
           ls -la dist/
+
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mcp-servers-package
+          path: dist/
+          retention-days: 30
