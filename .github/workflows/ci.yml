@@ -24,7 +24,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --dev
+          uv sync --extra dev
 
       - name: Run ruff linter
         run: |
@@ -51,7 +51,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --dev
+          uv sync --extra dev
 
       - name: Run mypy
         run: |
@@ -74,7 +74,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --dev
+          uv sync --extra dev
 
       - name: Run tests
         run: |
@@ -95,6 +95,10 @@ jobs:
         uses: astral-sh/setup-uv@v4
         with:
           version: "latest"
+
+      - name: Install dependencies
+        run: |
+          uv sync --extra dev
 
       - name: Build package
         run: |
