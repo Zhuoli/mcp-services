@@ -12,16 +12,22 @@ A comprehensive collection of Model Context Protocol (MCP) servers that enable A
 
 ## Installation
 
-### From PyPI (Recommended)
+### From GitHub Actions Artifacts (Recommended)
+
+1. Go to the [Actions tab](../../actions) in this repository
+2. Click on the latest successful **CI** workflow run
+3. Download the `mcp-servers-package` artifact (contains `.whl` and `.tar.gz`)
+4. Unzip and install:
 
 ```bash
-pip install mcp-servers-collection
-```
+# Unzip the downloaded artifact
+unzip mcp-servers-package.zip
 
-Or with `uv`:
+# Install the wheel package
+pip install mcp_servers_collection-*.whl
 
-```bash
-uv pip install mcp-servers-collection
+# Or with uv
+uv pip install mcp_servers_collection-*.whl
 ```
 
 ### From Source
@@ -430,8 +436,7 @@ mcp-services/
 ├── tests/                     # Test suite
 ├── .github/
 │   └── workflows/             # CI/CD workflows
-│       ├── ci.yml             # Lint, typecheck, test
-│       └── publish.yml        # PyPI publishing
+│       └── ci.yml             # Test, build, upload artifacts
 ├── pyproject.toml
 ├── Makefile
 └── README.md
