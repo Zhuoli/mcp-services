@@ -1,0 +1,57 @@
+{
+  "$schema": "https://raw.githubusercontent.com/anthropics/claude-desktop/main/schemas/mcp-settings.schema.json",
+  "mcpServers": {
+    "oracle-cloud": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/mcp-services",
+        "run",
+        "oracle-cloud-mcp"
+      ],
+      "env": {
+        "OCI_CONFIG_FILE": "~/.oci/config",
+        "OCI_PROFILE": "DEFAULT",
+        "OCI_REGION": "us-phoenix-1"
+      }
+    },
+    "oracle-cloud-pip": {
+      "command": "oracle-cloud-mcp",
+      "env": {
+        "OCI_CONFIG_FILE": "~/.oci/config",
+        "OCI_PROFILE": "DEFAULT",
+        "OCI_REGION": "us-phoenix-1"
+      }
+    },
+    "atlassian": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/mcp-services",
+        "run",
+        "atlassian-mcp"
+      ],
+      "env": {
+        "JIRA_URL": "https://your-company.atlassian.net",
+        "JIRA_USERNAME": "your-email@company.com",
+        "JIRA_API_TOKEN": "your-jira-api-token",
+        "CONFLUENCE_URL": "https://your-company.atlassian.net/wiki",
+        "CONFLUENCE_USERNAME": "your-email@company.com",
+        "CONFLUENCE_API_TOKEN": "your-confluence-api-token",
+        "CONFLUENCE_SPACE_KEY": "TEAM"
+      }
+    },
+    "code-repos": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "/path/to/mcp-services",
+        "run",
+        "code-repos-mcp"
+      ],
+      "env": {
+        "REPOS_CONFIG_PATH": "/path/to/config/repos.yaml"
+      }
+    }
+  }
+}

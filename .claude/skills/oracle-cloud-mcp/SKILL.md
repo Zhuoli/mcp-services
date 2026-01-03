@@ -4,13 +4,14 @@ This skill provides instructions for using the Oracle Cloud MCP server to intera
 
 ## Skill Overview
 
-**Purpose**: Enable AI assistants to interact with Oracle Cloud Infrastructure for managing compute instances, OKE clusters, and bastions.
+**Purpose**: Enable AI assistants to interact with Oracle Cloud Infrastructure for managing OKE clusters, DevOps pipelines, compute instances, and more.
 
 **When to use**: When the user needs to:
 - Authenticate with OCI using session tokens
-- List or manage compute instances
-- Work with OKE (Kubernetes) clusters
-- Access bastion hosts for SSH connectivity
+- Manage OKE (Kubernetes) clusters, node pools, and scaling
+- Work with OCI DevOps build and deployment pipelines
+- List or manage compute instances and bastions
+- Access code repositories in OCI DevOps
 
 ## Prerequisites
 
@@ -59,79 +60,137 @@ Session tokens provide time-limited access (60 minutes) via browser-based SSO:
    - User completes authentication
    - Token is saved to ~/.oci/sessions/
 
-3. User: "List my instances"
+3. User: "List my OKE clusters"
 4. Assistant: First validate_session_token to ensure token is valid
-5. Then use list_instances with the compartment_id
+5. Then use list_oke_clusters with the compartment_id
 ```
 
-## Available Tools
+## Available Tools (37 total)
 
-### create_session_token
-Create a new session token via browser-based authentication.
+### Authentication Tools
 
-**When to use**: Before any OCI operations when using session auth, or when token has expired.
+| Tool | Description |
+|------|-------------|
+| `create_session_token` | Create session token via browser SSO |
+| `validate_session_token` | Check token validity and remaining time |
 
-**Parameters**:
-- `region` (required): OCI region name
-- `profile_name`: Profile to create (default: DEFAULT)
-- `tenancy_name`: Tenancy for auth (default: bmc_operator_access)
-- `timeout_minutes`: Auth timeout (default: 5)
+### OKE Cluster Tools
 
-### validate_session_token
-Check if the current session token is valid.
+| Tool | Description |
+|------|-------------|
+| `list_oke_clusters` | List OKE clusters in a compartment |
+| `get_oke_cluster` | Get detailed cluster info (endpoints, versions, options) |
+| `get_kubeconfig` | Generate kubeconfig for kubectl access |
 
-**When to use**: Before performing OCI operations to ensure authentication is valid.
+### OKE Node Pool Tools
 
-**Parameters**:
-- `region` (required): OCI region name
-- `profile_name`: Profile to check
+| Tool | Description |
+|------|-------------|
+| `list_node_pools` | List node pools in a compartment/cluster |
+| `get_node_pool` | Get node pool details (shape, image, size) |
+| `list_nodes` | List nodes in a node pool |
+| `scale_node_pool` | Scale node pool to specific size |
+| `list_work_requests` | Track async OKE operations |
 
-**Returns**: Validity status, token age, and remaining minutes
+### DevOps Project Tools
 
-### list_compartments
-List OCI compartments under a parent compartment.
+| Tool | Description |
+|------|-------------|
+| `list_devops_projects` | List DevOps projects |
+| `get_devops_project` | Get project details |
 
-**Parameters**:
-- `region` (required): OCI region name
-- `compartment_id` (required): Parent compartment OCID
-- `include_root`: Include root compartment (default: false)
+### Build Pipeline Tools
 
-### list_instances
-List compute instances in a compartment.
+| Tool | Description |
+|------|-------------|
+| `list_build_pipelines` | List build pipelines in a project |
+| `get_build_pipeline` | Get pipeline with stages |
+| `list_build_runs` | List build executions |
+| `get_build_run` | Get build run details and progress |
+| `trigger_build_run` | Start a new build |
+| `cancel_build_run` | Cancel running build |
 
-**Parameters**:
-- `region` (required): OCI region name
-- `compartment_id` (required): Compartment OCID
-- `lifecycle_state`: Filter by state (RUNNING, STOPPED, etc.)
-- `oke_only`: Only return OKE cluster instances (default: false)
+### Deployment Pipeline Tools
 
-### list_oke_clusters
-List OKE (Kubernetes) clusters.
+| Tool | Description |
+|------|-------------|
+| `list_deploy_pipelines` | List deployment pipelines |
+| `get_deploy_pipeline` | Get pipeline with stages |
+| `list_deployments` | List deployment executions |
+| `get_deployment` | Get deployment details and progress |
+| `create_deployment` | Trigger a deployment |
+| `approve_deployment` | Approve/reject manual approval stage |
+| `cancel_deployment` | Cancel running deployment |
 
-**Parameters**:
-- `region` (required): OCI region name
-- `compartment_id` (required): Compartment OCID
-- `lifecycle_state`: Filter by state (ACTIVE, CREATING, etc.)
+### DevOps Resource Tools
 
-**Returns**: Cluster details including Kubernetes version and available upgrades
+| Tool | Description |
+|------|-------------|
+| `list_deploy_artifacts` | List deployment artifacts |
+| `list_deploy_environments` | List deployment targets |
+| `list_repositories` | List code repositories |
+| `get_repository` | Get repository details |
+| `list_repository_refs` | List branches/tags |
+| `list_repository_commits` | List commits |
+| `list_triggers` | List CI triggers |
+| `list_connections` | List external SCM connections |
 
-### list_bastions
-List bastion hosts for SSH access to private instances.
+### Infrastructure Tools
 
-**Parameters**:
-- `region` (required): OCI region name
-- `compartment_id` (required): Compartment OCID
+| Tool | Description |
+|------|-------------|
+| `list_compartments` | List OCI compartments |
+| `list_instances` | List compute instances |
+| `list_bastions` | List bastion hosts |
 
 ## Common Patterns
 
-### Get Running Instances in a Compartment
+### Manage OKE Cluster
 
 ```
-1. validate_session_token for the region
-2. list_instances with:
-   - region: "us-phoenix-1"
-   - compartment_id: "ocid1.compartment.oc1..xxxxx"
-   - lifecycle_state: "RUNNING"
+1. list_oke_clusters to find clusters
+2. get_oke_cluster for detailed info
+3. list_node_pools to see worker pools
+4. scale_node_pool to adjust capacity
+5. list_work_requests to track scaling progress
+```
+
+### Get Kubeconfig for kubectl
+
+```
+1. get_kubeconfig with cluster_id
+2. Save the returned kubeconfig to ~/.kube/config
+3. Use kubectl to manage the cluster
+```
+
+### Trigger Build Pipeline
+
+```
+1. list_devops_projects to find project
+2. list_build_pipelines to find pipeline
+3. trigger_build_run with pipeline ID
+4. get_build_run to monitor progress
+```
+
+### Deploy Application to OKE
+
+```
+1. list_deploy_pipelines to find pipeline
+2. create_deployment with pipeline ID
+3. If manual approval required:
+   - get_deployment shows stage waiting for approval
+   - approve_deployment to proceed
+4. get_deployment to monitor completion
+```
+
+### Check Build/Deploy Status
+
+```
+1. list_build_runs or list_deployments with lifecycle_state filter
+   - IN_PROGRESS: Currently running
+   - SUCCEEDED: Completed successfully
+   - FAILED: Execution failed
+2. get_build_run or get_deployment for detailed stage progress
 ```
 
 ### Find OKE Cluster Nodes
@@ -139,13 +198,6 @@ List bastion hosts for SSH access to private instances.
 ```
 1. list_instances with oke_only: true
 2. Results include cluster_name for grouping
-```
-
-### Check Available Kubernetes Upgrades
-
-```
-1. list_oke_clusters for the compartment
-2. Check available_upgrades field for each cluster
 ```
 
 ## Error Handling
@@ -161,8 +213,11 @@ If compartment_id is invalid:
 1. Use list_compartments from a known parent to find valid IDs
 2. Compartment OCIDs start with "ocid1.compartment.oc1.."
 
-### Region Not Available
-Ensure the region name is valid (e.g., us-phoenix-1, us-ashburn-1, eu-frankfurt-1)
+### Async Operations
+Scaling and some DevOps operations are async:
+1. The tool returns a work_request_id
+2. Use list_work_requests to monitor progress
+3. Check percent_complete and status fields
 
 ## Best Practices
 
@@ -170,3 +225,5 @@ Ensure the region name is valid (e.g., us-phoenix-1, us-ashburn-1, eu-frankfurt-
 2. **Cache compartment IDs** - they don't change frequently
 3. **Use OKE filtering** when specifically looking for Kubernetes nodes
 4. **Check lifecycle states** to avoid operating on terminated resources
+5. **Monitor async operations** using work requests for OKE or get_build_run/get_deployment for DevOps
+6. **Use appropriate filters** to reduce API calls and response size

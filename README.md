@@ -1,213 +1,330 @@
-# MCP Servers
+# MCP Servers Collection
 
-A collection of Model Context Protocol (MCP) servers for Oracle Cloud, Atlassian (JIRA/Confluence), and Code Repository management.
+A comprehensive collection of Model Context Protocol (MCP) servers that enable AI assistants like Claude to interact with various services and infrastructure.
 
-## Overview
-
-This repository contains three MCP servers that enable AI assistants to interact with various services:
+## Servers Included
 
 | Server | Description | Tools |
 |--------|-------------|-------|
-| **oracle-cloud** | Oracle Cloud Infrastructure operations | 6 |
-| **atlassian** | JIRA and Confluence integration | 11 |
-| **code-repos** | Code repository discovery and navigation | 5 |
-
-## Quick Start
-
-```bash
-# Clone and setup
-cd mcp-servers
-make install
-
-# Copy and configure environment variables
-cp .env.example .env
-# Edit .env with your credentials
-
-# Run a server
-make run-oracle
-make run-atlassian
-make run-repos
-```
-
-## Requirements
-
-- Python 3.11+
-- [uv](https://github.com/astral-sh/uv) - Fast Python package installer
-
-### Install uv
-
-```bash
-# macOS/Linux
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Or with pip
-pip install uv
-```
+| **Oracle Cloud MCP** | Comprehensive OCI integration for OKE clusters, DevOps pipelines, and infrastructure | 37 tools |
+| **Atlassian MCP** | JIRA and Confluence integration | 11 tools |
+| **Code Repos MCP** | Local code repository management | 5 tools |
 
 ## Installation
 
-```bash
-# Install all dependencies
-make install
+### From PyPI (Recommended)
 
-# Or manually with uv
+```bash
+pip install mcp-servers-collection
+```
+
+Or with `uv`:
+
+```bash
+uv pip install mcp-servers-collection
+```
+
+### From Source
+
+```bash
+git clone https://github.com/your-org/mcp-services.git
+cd mcp-services
 uv sync
 ```
 
-## Usage
+## Quick Start
 
-### Running Servers
+### Running MCP Servers
 
-Each MCP server runs independently via stdio transport:
+After installation, you can run any MCP server directly:
 
 ```bash
-# Oracle Cloud MCP Server
-make run-oracle
+# Oracle Cloud MCP
+oracle-cloud-mcp
 
-# Atlassian MCP Server
-make run-atlassian
+# Atlassian MCP
+atlassian-mcp
 
-# Code Repos MCP Server
-make run-repos
+# Code Repos MCP
+code-repos-mcp
 ```
 
-### Claude Desktop Configuration
+Or using `uv` from source:
 
-Add to your Claude Desktop config (`~/.config/claude/claude_desktop_config.json`):
+```bash
+# Oracle Cloud MCP
+uv run oracle-cloud-mcp
+
+# Atlassian MCP
+uv run atlassian-mcp
+
+# Code Repos MCP
+uv run code-repos-mcp
+```
+
+## Claude Desktop Integration
+
+To use these MCP servers with Claude Desktop, add them to your `claude_desktop_config.json`:
+
+**Location:**
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+- Linux: `~/.config/claude/claude_desktop_config.json`
+
+### Example Configuration
 
 ```json
 {
   "mcpServers": {
     "oracle-cloud": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/mcp-servers", "python", "-m", "mcp_servers.oracle_cloud.server"],
+      "command": "oracle-cloud-mcp",
       "env": {
         "OCI_CONFIG_FILE": "~/.oci/config",
-        "OCI_PROFILE": "DEFAULT"
+        "OCI_PROFILE": "DEFAULT",
+        "OCI_REGION": "us-phoenix-1"
       }
     },
     "atlassian": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/mcp-servers", "python", "-m", "mcp_servers.atlassian.server"],
+      "command": "atlassian-mcp",
       "env": {
         "JIRA_URL": "https://your-company.atlassian.net",
         "JIRA_USERNAME": "your-email@company.com",
-        "JIRA_API_TOKEN": "your-token",
+        "JIRA_API_TOKEN": "your-jira-api-token",
         "CONFLUENCE_URL": "https://your-company.atlassian.net/wiki",
         "CONFLUENCE_USERNAME": "your-email@company.com",
-        "CONFLUENCE_API_TOKEN": "your-token",
+        "CONFLUENCE_API_TOKEN": "your-confluence-api-token",
         "CONFLUENCE_SPACE_KEY": "TEAM"
       }
     },
     "code-repos": {
-      "command": "uv",
-      "args": ["run", "--directory", "/path/to/mcp-servers", "python", "-m", "mcp_servers.code_repos.server"],
+      "command": "code-repos-mcp",
       "env": {
-        "REPOS_CONFIG_PATH": "/path/to/mcp-servers/config/repos.yaml"
+        "REPOS_CONFIG_PATH": "/path/to/repos.yaml"
       }
     }
   }
 }
 ```
 
-## Configuration
+See `examples/claude_desktop_config.json` for a complete example with both pip and uv configurations.
+
+---
+
+## Oracle Cloud MCP Server
+
+Comprehensive MCP server for Oracle Cloud Infrastructure (OCI) with full support for:
+
+- **OKE (Oracle Kubernetes Engine)**: Cluster management, node pools, kubeconfig generation, scaling
+- **OCI DevOps**: Build pipelines, deployment pipelines, artifacts, environments
+- **Infrastructure**: Compute instances, compartments, bastions
+
+### Prerequisites
+
+1. **OCI CLI installed and configured:**
+   ```bash
+   pip install oci-cli
+   oci setup config
+   ```
+
+2. **For session token authentication:**
+   ```bash
+   oci session authenticate --profile-name DEFAULT --region us-phoenix-1
+   ```
 
 ### Environment Variables
 
-Copy `.env.example` to `.env` and configure:
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OCI_CONFIG_FILE` | Path to OCI config file | `~/.oci/config` |
+| `OCI_PROFILE` | OCI profile name | `DEFAULT` |
+| `OCI_REGION` | OCI region | - |
 
-```bash
-# Oracle Cloud
-OCI_CONFIG_FILE=~/.oci/config
-OCI_PROFILE=DEFAULT
-OCI_REGION=us-phoenix-1
+### Available Tools (37 total)
 
-# Atlassian - JIRA
-JIRA_URL=https://your-company.atlassian.net
-JIRA_USERNAME=your-email@company.com
-JIRA_API_TOKEN=your-jira-api-token
+#### Authentication (2 tools)
+| Tool | Description |
+|------|-------------|
+| `create_session_token` | Create session token via browser SSO |
+| `validate_session_token` | Check session token validity |
 
-# Atlassian - Confluence
-CONFLUENCE_URL=https://your-company.atlassian.net/wiki
-CONFLUENCE_USERNAME=your-email@company.com
-CONFLUENCE_API_TOKEN=your-confluence-api-token
-CONFLUENCE_SPACE_KEY=TEAM
+#### OKE Cluster Operations (8 tools)
+| Tool | Description |
+|------|-------------|
+| `list_oke_clusters` | List OKE clusters in a compartment |
+| `get_oke_cluster` | Get detailed cluster information |
+| `get_kubeconfig` | Generate kubeconfig for cluster access |
+| `list_node_pools` | List node pools |
+| `get_node_pool` | Get node pool details |
+| `list_nodes` | List nodes in a node pool |
+| `scale_node_pool` | Scale node pool to specific size |
+| `list_work_requests` | Track async OKE operations |
 
-# Code Repos
-REPOS_CONFIG_PATH=./config/repos.yaml
+#### DevOps Projects (2 tools)
+| Tool | Description |
+|------|-------------|
+| `list_devops_projects` | List DevOps projects |
+| `get_devops_project` | Get project details |
+
+#### Build Pipelines & Runs (6 tools)
+| Tool | Description |
+|------|-------------|
+| `list_build_pipelines` | List build pipelines |
+| `get_build_pipeline` | Get pipeline with stages |
+| `list_build_runs` | List build executions |
+| `get_build_run` | Get build run details |
+| `trigger_build_run` | Start a new build |
+| `cancel_build_run` | Cancel running build |
+
+#### Deployment Pipelines & Deployments (7 tools)
+| Tool | Description |
+|------|-------------|
+| `list_deploy_pipelines` | List deployment pipelines |
+| `get_deploy_pipeline` | Get pipeline with stages |
+| `list_deployments` | List deployments |
+| `get_deployment` | Get deployment details |
+| `create_deployment` | Trigger deployment |
+| `approve_deployment` | Approve/reject deployment stage |
+| `cancel_deployment` | Cancel running deployment |
+
+#### DevOps Resources (9 tools)
+| Tool | Description |
+|------|-------------|
+| `list_deploy_artifacts` | List deployment artifacts |
+| `list_deploy_environments` | List deployment targets (OKE, compute) |
+| `list_repositories` | List code repositories |
+| `get_repository` | Get repository details |
+| `list_repository_refs` | List branches/tags |
+| `list_repository_commits` | List commits |
+| `list_triggers` | List CI triggers |
+| `list_connections` | List external SCM connections |
+
+#### Infrastructure (3 tools)
+| Tool | Description |
+|------|-------------|
+| `list_compartments` | List OCI compartments |
+| `list_instances` | List compute instances |
+| `list_bastions` | List bastion hosts |
+
+### Example Usage with Claude
+
+```
+User: List all OKE clusters in my production compartment
+
+Claude: I'll list the OKE clusters in your production compartment.
+[Uses list_oke_clusters tool]
+
+Found 2 OKE clusters:
+1. prod-cluster-1 (v1.28.2) - ACTIVE
+2. prod-cluster-2 (v1.27.10) - ACTIVE
+
+User: Scale the prod-cluster-1 worker pool to 5 nodes
+
+Claude: I'll scale the worker pool. First, let me get the node pools.
+[Uses list_node_pools tool]
+[Uses scale_node_pool tool]
+
+Node pool scaling initiated. Work request ID: ocid1.workrequest...
+Current status: IN_PROGRESS (0% complete)
+
+User: Trigger a build for my app
+
+Claude: I'll trigger a build. Let me list the available build pipelines first.
+[Uses list_build_pipelines tool]
+[Uses trigger_build_run tool]
+
+Build run triggered successfully!
+- Build Run ID: ocid1.buildrun...
+- Status: ACCEPTED
+- Pipeline: app-build-pipeline
 ```
 
-### Code Repos Configuration
+---
 
-Edit `config/repos.yaml` to add your repositories:
+## Atlassian MCP Server
+
+MCP server for JIRA and Confluence integration.
+
+### Prerequisites
+
+1. **JIRA API Token:** Generate at https://id.atlassian.com/manage-profile/security/api-tokens
+2. **Confluence API Token:** Same as JIRA token (if using Atlassian Cloud)
+
+### Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `JIRA_URL` | JIRA instance URL | Yes |
+| `JIRA_USERNAME` | JIRA username/email | Yes |
+| `JIRA_API_TOKEN` | JIRA API token | Yes |
+| `CONFLUENCE_URL` | Confluence instance URL | Yes |
+| `CONFLUENCE_USERNAME` | Confluence username/email | Yes |
+| `CONFLUENCE_API_TOKEN` | Confluence API token | Yes |
+| `CONFLUENCE_SPACE_KEY` | Default Confluence space | No |
+
+### Available Tools (11 total)
+
+#### JIRA Tools (6 tools)
+| Tool | Description |
+|------|-------------|
+| `get_my_jira_issues` | Get issues assigned to you |
+| `search_jira_tickets` | Search with JQL |
+| `get_sprint_tasks` | Get sprint issues |
+| `create_jira_ticket` | Create new issue |
+| `update_jira_ticket` | Update existing issue |
+| `add_jira_comment` | Add comment to issue |
+
+#### Confluence Tools (5 tools)
+| Tool | Description |
+|------|-------------|
+| `search_confluence_pages` | Search pages with CQL |
+| `get_confluence_page` | Get page content |
+| `create_confluence_page` | Create new page |
+| `update_confluence_page` | Update existing page |
+| `get_recent_confluence_pages` | Get recently modified pages |
+
+---
+
+## Code Repos MCP Server
+
+MCP server for managing and querying local code repositories.
+
+### Configuration
+
+Create a `repos.yaml` file:
 
 ```yaml
 repositories:
   - name: my-project
     path: /path/to/my-project
-    description: Description of the project
-    tags:
-      - python
-      - api
+    description: Main project repository
+    tags: [python, api, backend]
+    default_branch: main
+
+  - name: frontend
+    path: /path/to/frontend
+    description: React frontend
+    tags: [react, typescript, frontend]
 ```
 
-## MCP Servers
+### Environment Variables
 
-### Oracle Cloud MCP
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `REPOS_CONFIG_PATH` | Path to repos.yaml | `./config/repos.yaml` |
 
-Tools for Oracle Cloud Infrastructure:
-
-| Tool | Description |
-|------|-------------|
-| `create_session_token` | Create OCI session token via browser SSO |
-| `validate_session_token` | Check token validity and remaining time |
-| `list_compartments` | List OCI compartments |
-| `list_instances` | List compute instances (with OKE filtering) |
-| `list_oke_clusters` | List Kubernetes clusters |
-| `list_bastions` | List bastion hosts |
-
-**Authentication**: Uses session token authentication via OCI CLI. Tokens are valid for 60 minutes.
-
-### Atlassian MCP
-
-Tools for JIRA and Confluence:
-
-**JIRA Tools**:
-| Tool | Description |
-|------|-------------|
-| `get_my_jira_issues` | Get issues assigned to current user |
-| `search_jira_tickets` | Search using JQL |
-| `get_sprint_tasks` | Get current sprint tasks |
-| `create_jira_ticket` | Create new issue |
-| `update_jira_ticket` | Update existing issue |
-| `add_jira_comment` | Add comment to issue |
-
-**Confluence Tools**:
-| Tool | Description |
-|------|-------------|
-| `search_confluence_pages` | Search using CQL |
-| `get_confluence_page` | Get page by ID or title |
-| `create_confluence_page` | Create page (with templates) |
-| `update_confluence_page` | Update existing page |
-| `get_recent_confluence_pages` | List recently modified pages |
-
-**Page Templates**: `technical_doc`, `runbook`, `meeting_notes`, `project_doc`
-
-### Code Repos MCP
-
-Tools for repository discovery:
+### Available Tools (5 tools)
 
 | Tool | Description |
 |------|-------------|
 | `list_repos` | List all configured repositories |
-| `get_repo_info` | Get detailed repo information |
+| `get_repo_info` | Get repository details with project type detection |
 | `search_repos` | Search by query or tags |
 | `get_repo_structure` | Get directory structure |
 | `reload_config` | Reload repos.yaml configuration |
 
-## Examples
+---
 
-The `src/examples/` folder contains example implementations demonstrating how to connect to and use the MCP servers.
+## Examples
 
 ### MVP Chatbot Agent
 
@@ -217,39 +334,23 @@ An interactive chatbot that connects to MCP servers and uses Claude for tool cal
 # Set your Anthropic API key
 export ANTHROPIC_API_KEY=your-api-key
 
-# Run with code-repos server only (no extra config needed)
+# Run with code-repos server only
 make chatbot
 
-# Run with specific servers
-make chatbot-repos
-make chatbot-atlassian
-
-# Run with all servers (requires .env configured)
+# Run with all servers
 make chatbot-all
 ```
 
-**Features:**
-- Connects to multiple MCP servers as subprocesses
-- Communicates via JSON-RPC over stdio
-- Integrates with Claude API for tool calling
-- Rich terminal UI with markdown rendering
-
-**Commands in chatbot:**
-- Type messages to interact with Claude
-- `tools` - List available tools
-- `clear` - Clear conversation history
-- `quit` or Ctrl+C - Exit
-
 ### MCP Client Library
 
-Use `mcp_client.py` in your own projects:
+Use the MCP client in your own projects:
 
 ```python
 from examples.mcp_client import MCPClient, MCPServerConfig
 
 config = MCPServerConfig(
     name="repos",
-    command=["uv", "run", "python", "-m", "mcp_servers.code_repos.server"],
+    command=["code-repos-mcp"],
 )
 
 async with MCPClient(config) as client:
@@ -257,69 +358,116 @@ async with MCPClient(config) as client:
     result = await client.call_tool("list_repos", {})
 ```
 
-See `src/examples/README.md` for more details.
+---
+
+## Development
+
+### Setup
+
+```bash
+# Clone repository
+git clone https://github.com/your-org/mcp-services.git
+cd mcp-services
+
+# Install dependencies
+uv sync --dev
+
+# Run linting
+uv run ruff check src/
+uv run ruff format src/
+
+# Run type checking
+uv run mypy src/
+
+# Run tests
+uv run pytest tests/ -v
+```
+
+### Building the Package
+
+```bash
+uv build
+```
+
+This creates:
+- `dist/mcp_servers_collection-*.whl` (wheel)
+- `dist/mcp_servers_collection-*.tar.gz` (source)
+
+### Makefile Commands
+
+```bash
+make install      # Install dependencies
+make lint         # Run ruff linter
+make format       # Format code with ruff
+make typecheck    # Run mypy type checking
+make test         # Run pytest
+make check        # Run all checks
+make run-oracle   # Run Oracle Cloud MCP
+make run-atlassian # Run Atlassian MCP
+make run-repos    # Run Code Repos MCP
+```
+
+### Project Structure
+
+```
+mcp-services/
+├── src/
+│   ├── mcp_servers/
+│   │   ├── oracle_cloud/      # Oracle Cloud MCP (37 tools)
+│   │   │   ├── auth.py        # OCI authentication
+│   │   │   ├── client.py      # OCI client operations
+│   │   │   ├── models.py      # Data models
+│   │   │   ├── server.py      # MCP server
+│   │   │   └── tools.py       # Tool implementations
+│   │   ├── atlassian/         # Atlassian MCP (11 tools)
+│   │   ├── code_repos/        # Code Repos MCP (5 tools)
+│   │   └── common/            # Shared utilities
+│   └── examples/              # Example implementations
+├── examples/
+│   └── claude_desktop_config.json  # Claude Desktop config example
+├── config/
+│   └── repos.yaml             # Repository configuration
+├── tests/                     # Test suite
+├── .github/
+│   └── workflows/             # CI/CD workflows
+│       ├── ci.yml             # Lint, typecheck, test
+│       └── publish.yml        # PyPI publishing
+├── pyproject.toml
+├── Makefile
+└── README.md
+```
+
+---
 
 ## Skills
 
-Each MCP server includes a Claude Code skill with detailed usage instructions:
+Each MCP server includes Claude Code skills with detailed usage instructions:
 
 - `.claude/skills/oracle-cloud-mcp/SKILL.md` - OCI authentication and operations
 - `.claude/skills/atlassian-mcp/SKILL.md` - JQL/CQL patterns and templates
 - `.claude/skills/code-repos-mcp/SKILL.md` - Repository discovery patterns
 
-## Startup Validation
+---
 
-The Oracle Cloud and Atlassian MCP servers perform connection tests at startup:
+## Contributing
 
-- **Oracle Cloud**: Validates OCI config, profile, session token, and tests API connectivity
-- **Atlassian**: Validates environment variables and tests JIRA/Confluence API connectivity
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/my-feature`
+3. Make your changes
+4. Run tests and linting: `make check`
+5. Commit your changes: `git commit -am 'Add my feature'`
+6. Push to the branch: `git push origin feature/my-feature`
+7. Submit a pull request
 
-If validation fails, servers exit with instructive error messages explaining how to fix the configuration.
-
-## Development
-
-```bash
-# Install with dev dependencies
-make install
-
-# Run linting
-make lint
-
-# Run type checking
-make typecheck
-
-# Run tests
-make test
-
-# Format code
-make format
-
-# Run all checks
-make check
-```
-
-## Project Structure
-
-```
-mcp-servers/
-├── Makefile                    # Build and run commands
-├── pyproject.toml              # Project configuration
-├── .env.example                # Environment template
-├── config/
-│   └── repos.yaml              # Code repos configuration
-├── src/
-│   ├── mcp_servers/
-│   │   ├── common/             # Shared utilities
-│   │   ├── oracle_cloud/       # Oracle Cloud MCP
-│   │   ├── atlassian/          # Atlassian MCP
-│   │   └── code_repos/         # Code Repos MCP
-│   └── examples/
-│       ├── mcp_client.py       # MCP client library
-│       ├── chatbot.py          # MVP chatbot agent
-│       └── README.md           # Examples documentation
-└── .claude/skills/             # Claude Code skills
-```
+---
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details.
+
+---
+
+## Support
+
+- **Issues:** https://github.com/your-org/mcp-services/issues
+- **Documentation:** https://github.com/your-org/mcp-services/wiki
