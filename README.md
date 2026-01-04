@@ -4,11 +4,11 @@ A comprehensive collection of Model Context Protocol (MCP) servers that enable A
 
 ## Servers Included
 
-| Server | Description | Tools |
-|--------|-------------|-------|
-| **Oracle Cloud MCP** | Comprehensive OCI integration for OKE clusters, DevOps pipelines, and infrastructure | 37 tools |
-| **Atlassian MCP** | JIRA and Confluence integration | 11 tools |
-| **Code Repos MCP** | Local code repository management | 5 tools |
+| Server | Description | Tools | Documentation |
+|--------|-------------|-------|---------------|
+| **Oracle Cloud MCP** | Comprehensive OCI integration for OKE clusters, DevOps pipelines, and infrastructure | 37 tools | [README](src/mcp_servers/oracle_cloud/README.md) |
+| **Atlassian MCP** | JIRA and Confluence integration | 11 tools | [README](src/mcp_servers/atlassian/README.md) |
+| **Code Repos MCP** | Local code repository management | 5 tools | [README](src/mcp_servers/code_repos/README.md) |
 
 ## Installation
 
