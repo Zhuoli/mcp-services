@@ -1021,3 +1021,116 @@ class TestErrorHandling:
         # format_error returns a plain string, not JSON
         assert "Error" in result
         assert "API Error" in result
+
+
+class TestAuthErrorHandling:
+    """Tests for authentication error handling."""
+
+    @pytest.mark.asyncio
+    @patch("mcp_servers.oracle_cloud.tools._get_client")
+    async def test_oci_authentication_error_handling(self, mock_get_client):
+        """Test that OCIAuthenticationError is handled with recovery instructions."""
+        from mcp_servers.oracle_cloud.auth import OCIAuthenticationError
+
+        mock_get_client.side_effect = OCIAuthenticationError(
+            "Authentication failed: Token expired",
+            profile_name="TEST_PROFILE"
+        )
+
+        result = await tools.list_oke_clusters_tool({
+            "region": "us-phoenix-1",
+            "compartment_id": "ocid1.compartment.oc1..test",
+        })
+
+        data = json.loads(result)
+        assert data["error"] == "authentication_failed"
+        assert "recovery" in data
+        assert data["recovery"]["action"] == "run_command"
+        assert "oci session authenticate --profile-name TEST_PROFILE" in data["recovery"]["command"]
+        assert "hint" in data
+
+    @pytest.mark.asyncio
+    @patch("mcp_servers.oracle_cloud.tools._get_client")
+    async def test_oci_service_error_401_handling(self, mock_get_client):
+        """Test that OCI ServiceError with status 401 is handled with recovery instructions."""
+        import oci
+
+        mock_service_error = oci.exceptions.ServiceError(
+            status=401,
+            code="NotAuthenticated",
+            headers={},
+            message="The required information to complete authentication was not provided.",
+        )
+        mock_get_client.side_effect = mock_service_error
+
+        result = await tools.list_oke_clusters_tool({
+            "region": "us-phoenix-1",
+            "compartment_id": "ocid1.compartment.oc1..test",
+            "profile_name": "CUSTOM_PROFILE",
+        })
+
+        data = json.loads(result)
+        assert data["error"] == "authentication_failed"
+        assert "recovery" in data
+        assert "oci session authenticate --profile-name CUSTOM_PROFILE" in data["recovery"]["command"]
+
+    @pytest.mark.asyncio
+    @patch("mcp_servers.oracle_cloud.tools._get_client")
+    async def test_oci_service_error_non_401_not_treated_as_auth_error(self, mock_get_client):
+        """Test that OCI ServiceError with non-401 status is not treated as auth error."""
+        import oci
+
+        mock_service_error = oci.exceptions.ServiceError(
+            status=404,
+            code="NotFound",
+            headers={},
+            message="Resource not found.",
+        )
+        mock_client = MagicMock()
+        mock_client.list_oke_clusters.side_effect = mock_service_error
+        mock_get_client.return_value = mock_client
+
+        result = await tools.list_oke_clusters_tool({
+            "region": "us-phoenix-1",
+            "compartment_id": "ocid1.compartment.oc1..test",
+        })
+
+        # Should be a regular error, not auth error
+        assert "authentication_failed" not in result
+        assert "Error" in result or "NotFound" in result
+
+    def test_oci_authentication_error_attributes(self):
+        """Test OCIAuthenticationError exception attributes."""
+        from mcp_servers.oracle_cloud.auth import OCIAuthenticationError
+
+        error = OCIAuthenticationError(
+            "Token expired",
+            profile_name="MY_PROFILE"
+        )
+
+        assert error.profile_name == "MY_PROFILE"
+        assert error.recovery_command == "oci session authenticate --profile-name MY_PROFILE"
+        assert str(error) == "Token expired"
+
+    def test_format_auth_error_output(self):
+        """Test format_auth_error returns proper JSON structure."""
+        from mcp_servers.common.base_server import format_auth_error
+
+        result = format_auth_error("TEST_PROFILE")
+        data = json.loads(result)
+
+        assert data["error"] == "authentication_failed"
+        assert data["message"] == "OCI session token has expired or is invalid."
+        assert data["recovery"]["action"] == "run_command"
+        assert data["recovery"]["command"] == "oci session authenticate --profile-name TEST_PROFILE"
+        assert "Re-authenticate with OCI" in data["recovery"]["description"]
+        assert data["hint"] == "After running the command, retry the original operation."
+
+    def test_format_auth_error_default_profile(self):
+        """Test format_auth_error with default profile."""
+        from mcp_servers.common.base_server import format_auth_error
+
+        result = format_auth_error()
+        data = json.loads(result)
+
+        assert "oci session authenticate --profile-name DEFAULT" in data["recovery"]["command"]

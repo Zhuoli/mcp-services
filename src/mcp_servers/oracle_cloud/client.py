@@ -1,14 +1,19 @@
 """OCI client with session token support."""
 
 import base64
+import functools
 import logging
 import os
-from typing import Any, Optional
+from typing import Any, Callable, Optional, TypeVar
 
 import oci
 from oci.pagination import list_call_get_all_results
 
-from .auth import OCIAuthenticator
+from .auth import OCIAuthenticationError, OCIAuthenticator
+
+# Type variable for decorator
+F = TypeVar("F", bound=Callable[..., Any])
+
 from .models import (
     BastionInfo,
     BuildPipelineInfo,
@@ -37,6 +42,37 @@ from .models import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def handle_auth_errors(func: F) -> F:
+    """
+    Decorator that catches OCI authentication errors and raises OCIAuthenticationError.
+
+    This decorator wraps OCI client methods to detect 401 (Unauthorized) errors,
+    which typically indicate an expired or invalid session token, and converts
+    them into OCIAuthenticationError with recovery instructions.
+
+    Args:
+        func: The method to wrap
+
+    Returns:
+        Wrapped method that raises OCIAuthenticationError on auth failures
+    """
+
+    @functools.wraps(func)
+    def wrapper(self: "OCIClient", *args: Any, **kwargs: Any) -> Any:
+        try:
+            return func(self, *args, **kwargs)
+        except oci.exceptions.ServiceError as e:
+            if e.status == 401:
+                raise OCIAuthenticationError(
+                    f"Authentication failed: {e.message}. "
+                    f"The session token may have expired.",
+                    profile_name=self.config.profile_name,
+                ) from e
+            raise
+
+    return wrapper  # type: ignore[return-value]
 
 
 class OCIClient:

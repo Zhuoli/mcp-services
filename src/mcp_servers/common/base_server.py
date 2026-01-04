@@ -51,6 +51,37 @@ def format_error(error: Exception, context: str = "") -> str:
     return f"Error ({error_type}): {error_msg}"
 
 
+def format_auth_error(profile_name: str = "DEFAULT") -> str:
+    """
+    Format an authentication error with recovery instructions for agentic LLM clients.
+
+    This function returns a structured JSON response that provides:
+    - Clear error identification
+    - Human-readable message
+    - Machine-readable recovery action with the exact command to run
+
+    Args:
+        profile_name: OCI profile name to use for re-authentication
+
+    Returns:
+        JSON-formatted string with error details and recovery instructions
+    """
+    error_response = {
+        "error": "authentication_failed",
+        "message": "OCI session token has expired or is invalid.",
+        "recovery": {
+            "action": "run_command",
+            "command": f"oci session authenticate --profile-name {profile_name}",
+            "description": (
+                "Re-authenticate with OCI to get a new session token. "
+                "This will open a browser for SSO authentication."
+            ),
+        },
+        "hint": "After running the command, retry the original operation.",
+    }
+    return json.dumps(error_response, indent=2)
+
+
 def create_text_response(content: str) -> list[TextContent]:
     """
     Create a standard MCP text response.

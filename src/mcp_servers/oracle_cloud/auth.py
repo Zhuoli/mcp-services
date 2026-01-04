@@ -17,6 +17,27 @@ logger = logging.getLogger(__name__)
 console = Console()
 
 
+class OCIAuthenticationError(Exception):
+    """Raised when OCI authentication fails due to expired or invalid token.
+
+    This exception provides structured information for agentic LLM clients
+    to recover from authentication failures by running the appropriate
+    OCI CLI command.
+    """
+
+    def __init__(self, message: str, profile_name: str = "DEFAULT"):
+        """
+        Initialize authentication error with recovery information.
+
+        Args:
+            message: Error message describing the authentication failure
+            profile_name: OCI profile name to use for re-authentication
+        """
+        self.profile_name = profile_name
+        self.recovery_command = f"oci session authenticate --profile-name {profile_name}"
+        super().__init__(message)
+
+
 class OCIAuthenticator:
     """Handle OCI authentication with session token and API key support."""
 
