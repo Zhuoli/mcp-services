@@ -12,25 +12,9 @@ A comprehensive collection of Model Context Protocol (MCP) servers that enable A
 
 ## Installation
 
-### From GitHub Actions Artifacts (Recommended)
+We recommend using `uv` to avoid dependency conflicts that commonly occur with `pip install`.
 
-1. Go to the [Actions tab](../../actions) in this repository
-2. Click on the latest successful **CI** workflow run
-3. Download the `mcp-servers-package` artifact (contains `.whl` and `.tar.gz`)
-4. Unzip and install:
-
-```bash
-# Unzip the downloaded artifact
-unzip mcp-servers-package.zip
-
-# Install the wheel package
-pip install mcp_servers_collection-*.whl
-
-# Or with uv
-uv pip install mcp_servers_collection-*.whl
-```
-
-### From Source
+### From Source (Recommended)
 
 ```bash
 git clone https://github.com/your-org/mcp-services.git
@@ -38,24 +22,60 @@ cd mcp-services
 uv sync
 ```
 
+**MCP Settings Configuration** (add to your `claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "oracle-cloud": {
+      "command": "uv",
+      "args": ["--directory", "/path/to/mcp-services", "run", "oracle-cloud-mcp"],
+      "env": {
+        "OCI_CONFIG_FILE": "~/.oci/config",
+        "OCI_PROFILE": "DEFAULT"
+      }
+    }
+  }
+}
+```
+
+### From GitHub Actions Artifacts
+
+1. Go to the [Actions tab](../../actions) in this repository
+2. Click on the latest successful **CI** workflow run
+3. Download the `mcp-servers-package` artifact (contains `.whl` and `.tar.gz`)
+4. Unzip and use with `uvx`:
+
+```bash
+# Unzip the downloaded artifact
+unzip mcp-servers-package.zip
+
+# Run directly with uvx (no install needed)
+uvx --from ./mcp_servers_collection-0.1.0-py3-none-any.whl oracle-cloud-mcp
+```
+
+**MCP Settings Configuration** for wheel file:
+
+```json
+{
+  "mcpServers": {
+    "oracle-cloud": {
+      "command": "uvx",
+      "args": ["--from", "/path/to/mcp_servers_collection-0.1.0-py3-none-any.whl", "oracle-cloud-mcp"],
+      "env": {
+        "OCI_CONFIG_FILE": "~/.oci/config",
+        "OCI_PROFILE": "DEFAULT"
+      }
+    }
+  }
+}
+```
+
 ## Quick Start
 
 ### Running MCP Servers
 
-After installation, you can run any MCP server directly:
-
-```bash
-# Oracle Cloud MCP
-oracle-cloud-mcp
-
-# Atlassian MCP
-atlassian-mcp
-
-# Code Repos MCP
-code-repos-mcp
-```
-
-Or using `uv` from source:
+After cloning and running `uv sync`, run any MCP server with:
 
 ```bash
 # Oracle Cloud MCP
@@ -77,13 +97,16 @@ To use these MCP servers with Claude Desktop, add them to your `claude_desktop_c
 - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
 - Linux: `~/.config/claude/claude_desktop_config.json`
 
-### Example Configuration
+### Example Configuration (using uv)
+
+Replace `/path/to/mcp-services` with your actual clone location:
 
 ```json
 {
   "mcpServers": {
     "oracle-cloud": {
-      "command": "oracle-cloud-mcp",
+      "command": "uv",
+      "args": ["--directory", "/path/to/mcp-services", "run", "oracle-cloud-mcp"],
       "env": {
         "OCI_CONFIG_FILE": "~/.oci/config",
         "OCI_PROFILE": "DEFAULT",
@@ -91,7 +114,8 @@ To use these MCP servers with Claude Desktop, add them to your `claude_desktop_c
       }
     },
     "atlassian": {
-      "command": "atlassian-mcp",
+      "command": "uv",
+      "args": ["--directory", "/path/to/mcp-services", "run", "atlassian-mcp"],
       "env": {
         "JIRA_URL": "https://your-company.atlassian.net",
         "JIRA_USERNAME": "your-email@company.com",
@@ -103,7 +127,8 @@ To use these MCP servers with Claude Desktop, add them to your `claude_desktop_c
       }
     },
     "code-repos": {
-      "command": "code-repos-mcp",
+      "command": "uv",
+      "args": ["--directory", "/path/to/mcp-services", "run", "code-repos-mcp"],
       "env": {
         "REPOS_CONFIG_PATH": "/path/to/repos.yaml"
       }
@@ -112,7 +137,7 @@ To use these MCP servers with Claude Desktop, add them to your `claude_desktop_c
 }
 ```
 
-See `examples/claude_desktop_config.json` for a complete example with both pip and uv configurations.
+See `examples/claude_desktop_config.json` for a complete example.
 
 ---
 
