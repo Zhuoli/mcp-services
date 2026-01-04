@@ -58,8 +58,8 @@ def oci_tool(tool_name: str) -> Callable[[F], F]:
                         f"Session token may be expired."
                     )
                     return format_auth_error(profile_name)
-                # Re-raise other service errors to be handled by generic handler
-                raise
+                # Handle other service errors with the generic error formatter
+                return format_error(e, tool_name)
             except Exception as e:
                 return format_error(e, tool_name)
 
