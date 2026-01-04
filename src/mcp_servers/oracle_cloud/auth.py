@@ -14,7 +14,7 @@ from rich.console import Console
 from .models import AuthType, OCIConfig
 
 logger = logging.getLogger(__name__)
-console = Console()
+console = Console(stderr=True)
 
 
 class OCIAuthenticationError(Exception):
